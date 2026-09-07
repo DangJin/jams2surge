@@ -10,6 +10,7 @@ Jams2Surge 是一个仅在本机运行的 Raycast 扩展。它下载代理订阅
 - 识别无效节点并继续处理同一订阅中的其他节点。
 - 识别 `vless://` 并给出兼容性说明。
 - 可将节点自动合并到“晚安 Surge”公共分流模板，并更新“代理”策略组。
+- 在 Raycast 本地加密存储中保留最近一次成功使用的订阅地址。
 - 预览、复制或保存生成的完整 Surge profile。
 
 Surge 当前不原生支持 VLESS。扩展不会把 VLESS 伪装成 VMess 或生成无法工作的代理行，因此 VLESS 节点只会出现在“未转换项目”中。
@@ -40,6 +41,8 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 5. 在结果页检查已转换、不兼容和无效项目数量。
 6. 选择“复制配置”，或将 `.conf` 文件保存到 `~/Downloads`。
 
+转换成功后，订阅地址会自动保存在 Raycast 本地；下次打开命令时自动填充。表单动作菜单中的“清除已保存地址”可以删除这条本地记录。
+
 生成的 profile 包含以下 section：
 
 - `[General]`
@@ -60,7 +63,7 @@ DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
 ## 隐私与限制
 
 - 订阅由扩展直接从本机请求，不经过 Jams2Surge 服务器。
-- 扩展不持久化订阅地址和响应内容。
+- 扩展只在 Raycast 本地加密存储中保留最近一个成功使用的订阅地址，不保存订阅响应或节点内容。
 - 模板模式会同时从 GitHub 下载固定的 [`Surge-Mac.conf`](https://raw.githubusercontent.com/iFaNGMiNGi/Surge-Config/main/Surge-Mac.conf)。
 - 只有主动复制或保存时，生成结果才会写入剪贴板或磁盘。
 - 下载超时为 15 秒，响应体上限为 5 MiB。

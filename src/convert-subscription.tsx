@@ -12,12 +12,13 @@ import {
   Toast,
 } from "@raycast/api";
 import { useForm } from "@raycast/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { convertSubscriptionText } from "./subscription/convert";
 import { fetchSubscription } from "./subscription/fetch";
 import { generateSurgeProfile } from "./subscription/generate-profile";
 import { mergeSurgeTemplate } from "./subscription/merge-profile";
+import { subscriptionUrlStore } from "./subscription/raycast-subscription-url-store";
 import type { ConversionIssue, ConversionResult } from "./subscription/types";
 
 const SURGE_TEMPLATE_URL =
@@ -148,7 +149,7 @@ function ResultView({ profile, result, modeLabel }: SuccessfulConversion) {
 export default function Command() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversion, setConversion] = useState<SuccessfulConversion>();
-  const { handleSubmit, itemProps, values } = useForm<FormValues>({
+  const { handleSubmit, itemProps, setValue, values } = useForm<FormValues>({
     async onSubmit(values) {
       setIsLoading(true);
       const toast = await showToast({
@@ -175,6 +176,12 @@ export default function Command() {
               autoSelect: values.autoSelect,
             })
           : generateSurgeProfile(result.nodes);
+        let cacheFailed = false;
+        try {
+          await subscriptionUrlStore.save(values.url);
+        } catch {
+          cacheFailed = true;
+        }
         setConversion({
           profile,
           result,
@@ -182,8 +189,9 @@ export default function Command() {
         });
         toast.style = Toast.Style.Success;
         toast.title = `已转换 ${result.nodes.length} 个节点`;
-        toast.message =
-          result.issues.length > 0
+        toast.message = cacheFailed
+          ? "配置已生成，但订阅地址保存失败"
+          : result.issues.length > 0
             ? `${result.issues.length} 项未转换`
             : undefined;
       } catch (error) {
@@ -203,6 +211,35 @@ export default function Command() {
     },
   });
 
+  useEffect(() => {
+    let active = true;
+    void subscriptionUrlStore
+      .load()
+      .then((url) => {
+        if (active && url) setValue("url", url);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [setValue]);
+
+  async function clearSavedUrl(): Promise<void> {
+    try {
+      await subscriptionUrlStore.clear();
+      setValue("url", "");
+      await showToast({
+        style: Toast.Style.Success,
+        title: "已清除保存的订阅地址",
+      });
+    } catch {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "无法清除订阅地址",
+      });
+    }
+  }
+
   if (conversion) return <ResultView {...conversion} />;
 
   return (
@@ -214,6 +251,11 @@ export default function Command() {
             title="转换为 Surge Profile"
             icon={Icon.ArrowRight}
             onSubmit={handleSubmit}
+          />
+          <Action
+            title="清除已保存地址"
+            icon={Icon.Trash}
+            onAction={clearSavedUrl}
           />
         </ActionPanel>
       }
