@@ -9,6 +9,7 @@ Jams2Surge 是一个仅在本机运行的 Raycast 扩展。它下载代理订阅
 - 支持 Surge 可用的 Shadowsocks 加密方式及 simple-obfs 的 `http` / `tls` 参数。
 - 识别无效节点并继续处理同一订阅中的其他节点。
 - 识别 `vless://` 并给出兼容性说明。
+- 可将节点自动合并到“晚安 Surge”公共分流模板，并更新“代理”策略组。
 - 预览、复制或保存生成的完整 Surge profile。
 
 Surge 当前不原生支持 VLESS。扩展不会把 VLESS 伪装成 VMess 或生成无法工作的代理行，因此 VLESS 节点只会出现在“未转换项目”中。
@@ -32,8 +33,12 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 
 1. 粘贴一个 `http://` 或 `https://` 订阅地址。
 2. 执行“转换为 Surge Profile”。
-3. 在结果页检查已转换、不兼容和无效项目数量。
-4. 选择“复制配置”，或将 `.conf` 文件保存到 `~/Downloads`。
+3. 选择输出模式：
+   - “结合晚安 Surge 模板”：下载公共分流模板，将节点加入 `[Proxy]` 和“代理”策略组；
+   - “最小独立配置”：只生成基础 section 和 `FINAL,Proxy`。
+4. 模板模式下可选择是否添加“自动选择”测速组。
+5. 在结果页检查已转换、不兼容和无效项目数量。
+6. 选择“复制配置”，或将 `.conf` 文件保存到 `~/Downloads`。
 
 生成的 profile 包含以下 section：
 
@@ -42,12 +47,13 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 - `[Proxy Group]`
 - `[Rule]`
 
-默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。导入 Surge 后可按需添加更细的分流规则。
+最小配置的默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。模板模式保留上游规则，并把生成的节点接入模板的“代理”策略组；OpenAI、Claude、谷歌服务、漏网之鱼等下游策略组会继续引用它。
 
 ## 隐私与限制
 
 - 订阅由扩展直接从本机请求，不经过 Jams2Surge 服务器。
 - 扩展不持久化订阅地址和响应内容。
+- 模板模式会同时从 GitHub 下载固定的 [`Surge-Mac.conf`](https://raw.githubusercontent.com/iFaNGMiNGi/Surge-Config/main/Surge-Mac.conf)。
 - 只有主动复制或保存时，生成结果才会写入剪贴板或磁盘。
 - 下载超时为 15 秒，响应体上限为 5 MiB。
 - 错误提示不会包含完整订阅地址、密码、UUID、公钥或响应正文。

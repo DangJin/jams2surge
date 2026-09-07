@@ -17,15 +17,22 @@ import { useState } from "react";
 import { convertSubscriptionText } from "./subscription/convert";
 import { fetchSubscription } from "./subscription/fetch";
 import { generateSurgeProfile } from "./subscription/generate-profile";
+import { mergeSurgeTemplate } from "./subscription/merge-profile";
 import type { ConversionIssue, ConversionResult } from "./subscription/types";
+
+const SURGE_TEMPLATE_URL =
+  "https://raw.githubusercontent.com/iFaNGMiNGi/Surge-Config/main/Surge-Mac.conf";
 
 interface FormValues {
   url: string;
+  outputMode: string;
+  autoSelect: boolean;
 }
 
 interface SuccessfulConversion {
   profile: string;
   result: ConversionResult;
+  modeLabel: string;
 }
 
 function validateUrl(value: string | undefined): string | undefined {
@@ -98,7 +105,7 @@ async function saveProfile(profile: string): Promise<void> {
   }
 }
 
-function ResultView({ profile, result }: SuccessfulConversion) {
+function ResultView({ profile, result, modeLabel }: SuccessfulConversion) {
   const unsupportedCount = result.issues.filter(
     (issue) => issue.kind === "unsupported",
   ).length;
@@ -116,6 +123,7 @@ function ResultView({ profile, result }: SuccessfulConversion) {
             title="已转换"
             text={`${result.nodes.length} 个 Shadowsocks 节点`}
           />
+          <Detail.Metadata.Label title="输出模式" text={modeLabel} />
           <Detail.Metadata.Label
             title="不兼容"
             text={`${unsupportedCount} 项`}
@@ -140,7 +148,7 @@ function ResultView({ profile, result }: SuccessfulConversion) {
 export default function Command() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversion, setConversion] = useState<SuccessfulConversion>();
-  const { handleSubmit, itemProps } = useForm<FormValues>({
+  const { handleSubmit, itemProps, values } = useForm<FormValues>({
     async onSubmit(values) {
       setIsLoading(true);
       const toast = await showToast({
@@ -148,7 +156,12 @@ export default function Command() {
         title: "正在下载并转换订阅",
       });
       try {
-        const content = await fetchSubscription(values.url);
+        const [content, template] = await Promise.all([
+          fetchSubscription(values.url),
+          values.outputMode === "template"
+            ? fetchSubscription(SURGE_TEMPLATE_URL)
+            : Promise.resolve(undefined),
+        ]);
         const result = convertSubscriptionText(content);
         if (result.nodes.length === 0) {
           toast.style = Toast.Style.Failure;
@@ -157,8 +170,16 @@ export default function Command() {
             result.issues[0]?.message ?? "订阅中未发现兼容的 Shadowsocks 节点";
           return;
         }
-        const profile = generateSurgeProfile(result.nodes);
-        setConversion({ profile, result });
+        const profile = template
+          ? mergeSurgeTemplate(template, result.nodes, {
+              autoSelect: values.autoSelect,
+            })
+          : generateSurgeProfile(result.nodes);
+        setConversion({
+          profile,
+          result,
+          modeLabel: template ? "晚安 Surge 模板" : "最小独立配置",
+        });
         toast.style = Toast.Style.Success;
         toast.title = `已转换 ${result.nodes.length} 个节点`;
         toast.message =
@@ -175,6 +196,10 @@ export default function Command() {
     },
     validation: {
       url: (value) => validateUrl(value),
+    },
+    initialValues: {
+      outputMode: "template",
+      autoSelect: true,
     },
   });
 
@@ -199,6 +224,17 @@ export default function Command() {
         autoFocus
         {...itemProps.url}
       />
+      <Form.Dropdown title="输出模式" {...itemProps.outputMode}>
+        <Form.Dropdown.Item value="template" title="结合晚安 Surge 模板" />
+        <Form.Dropdown.Item value="minimal" title="最小独立配置" />
+      </Form.Dropdown>
+      {values.outputMode === "template" ? (
+        <Form.Checkbox
+          title="策略组"
+          label="添加“自动选择”测速组"
+          {...itemProps.autoSelect}
+        />
+      ) : null}
       <Form.Description text="支持 Shadowsocks；VLESS 将被识别并报告，但 Surge 无法原生使用。" />
     </Form>
   );

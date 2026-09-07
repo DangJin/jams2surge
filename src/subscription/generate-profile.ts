@@ -15,7 +15,7 @@ function formatValue(value: string): string {
   return `"${safe.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-function formatNode(node: SurgeShadowsocksNode): string {
+export function generateSurgeProxyLine(node: SurgeShadowsocksNode): string {
   const parameters = [
     `encrypt-method=${formatValue(node.method)}`,
     `password=${formatValue(node.password)}`,
@@ -37,7 +37,7 @@ export function generateSurgeProfile(nodes: SurgeShadowsocksNode[]): string {
     "loglevel = notify",
     "",
     "[Proxy]",
-    ...nodes.map(formatNode),
+    ...nodes.map(generateSurgeProxyLine),
     "",
     "[Proxy Group]",
     `Proxy = select, ${nodes.map((node) => node.name).join(", ")}, DIRECT`,
