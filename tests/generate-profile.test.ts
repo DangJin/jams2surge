@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { generateSurgeProfile, ProfileGenerationError } from "../src/subscription/generate-profile";
+import {
+  generateSurgeProfile,
+  ProfileGenerationError,
+} from "../src/subscription/generate-profile";
 import type { SurgeShadowsocksNode } from "../src/subscription/types";
 
 describe("generateSurgeProfile", () => {

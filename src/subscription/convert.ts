@@ -1,15 +1,30 @@
 import { decodeSubscription } from "./decode";
 import { NodeParseError, parseShadowsocksUri } from "./parse-shadowsocks";
-import type { ConversionIssue, ConversionResult, SurgeShadowsocksNode } from "./types";
+import type {
+  ConversionIssue,
+  ConversionResult,
+  SurgeShadowsocksNode,
+} from "./types";
 
-const VLESS_TRANSPORTS = new Set(["tcp", "kcp", "ws", "http", "grpc", "httpupgrade", "xhttp"]);
+const VLESS_TRANSPORTS = new Set([
+  "tcp",
+  "kcp",
+  "ws",
+  "http",
+  "grpc",
+  "httpupgrade",
+  "xhttp",
+]);
 const VLESS_SECURITIES = new Set(["none", "tls", "reality"]);
 
 function sanitizeName(value: string, fallback: string): string {
-  const sanitized = value
-    .replace(/[\u0000-\u001f\u007f,=]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const printable = [...value]
+    .map((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint < 32 || codePoint === 127 ? " " : character;
+    })
+    .join("");
+  const sanitized = printable.replace(/[,=]/g, " ").replace(/\s+/g, " ").trim();
   return sanitized || fallback;
 }
 
@@ -25,10 +40,16 @@ function decodeFragment(hash: string): string | undefined {
 function summarizeVless(uri: string, index: number): ConversionIssue {
   try {
     const parsed = new URL(uri);
-    const rawTransport = parsed.searchParams.get("type")?.toLowerCase() ?? "unknown";
-    const rawSecurity = parsed.searchParams.get("security")?.toLowerCase() ?? "unknown";
-    const transport = VLESS_TRANSPORTS.has(rawTransport) ? rawTransport : "unknown";
-    const security = VLESS_SECURITIES.has(rawSecurity) ? rawSecurity : "unknown";
+    const rawTransport =
+      parsed.searchParams.get("type")?.toLowerCase() ?? "unknown";
+    const rawSecurity =
+      parsed.searchParams.get("security")?.toLowerCase() ?? "unknown";
+    const transport = VLESS_TRANSPORTS.has(rawTransport)
+      ? rawTransport
+      : "unknown";
+    const security = VLESS_SECURITIES.has(rawSecurity)
+      ? rawSecurity
+      : "unknown";
     const fragment = decodeFragment(parsed.hash);
 
     return {
@@ -49,7 +70,11 @@ function summarizeVless(uri: string, index: number): ConversionIssue {
   }
 }
 
-function uniqueNodeName(name: string, index: number, usedNames: Set<string>): string {
+function uniqueNodeName(
+  name: string,
+  index: number,
+  usedNames: Set<string>,
+): string {
   const base = sanitizeName(name, `SS Node ${index}`);
   let candidate = base;
   let suffix = 2;
@@ -74,13 +99,23 @@ export function convertSubscriptionText(input: string): ConversionResult {
     if (scheme === "ss") {
       try {
         const node = parseShadowsocksUri(entry);
-        nodes.push({ ...node, name: uniqueNodeName(node.name, index, usedNames) });
+        nodes.push({
+          ...node,
+          name: uniqueNodeName(node.name, index, usedNames),
+        });
       } catch (error) {
         issues.push({
           index,
           protocol: "ss",
-          kind: error instanceof NodeParseError && error.code.startsWith("unsupported") ? "unsupported" : "invalid",
-          message: error instanceof NodeParseError ? error.message : "Shadowsocks 节点格式无效",
+          kind:
+            error instanceof NodeParseError &&
+            error.code.startsWith("unsupported")
+              ? "unsupported"
+              : "invalid",
+          message:
+            error instanceof NodeParseError
+              ? error.message
+              : "Shadowsocks 节点格式无效",
         });
       }
       return;

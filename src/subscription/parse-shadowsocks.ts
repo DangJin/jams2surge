@@ -48,25 +48,37 @@ function decodeBase64Url(value: string): string {
   if (!/^[A-Za-z0-9_-]+={0,2}$/.test(value) || value.length % 4 === 1) {
     return invalid();
   }
-  const normalized = value.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/, "");
+  const normalized = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .replace(/=+$/, "");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
   try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(padded, "base64"));
+    return new TextDecoder("utf-8", { fatal: true }).decode(
+      Buffer.from(padded, "base64"),
+    );
   } catch {
     return invalid();
   }
 }
 
-function parseCredentials(value: string, encoded: boolean): { method: string; password: string } {
+function parseCredentials(
+  value: string,
+  encoded: boolean,
+): { method: string; password: string } {
   const credentials = encoded ? decodeBase64Url(value) : value;
   const separator = credentials.indexOf(":");
   if (separator < 1) return invalid();
 
   const method = decodeComponent(credentials.slice(0, separator)).toLowerCase();
   const password = decodeComponent(credentials.slice(separator + 1));
-  if (!password && method !== "none") return invalid("Shadowsocks 密码不能为空");
+  if (!password && method !== "none")
+    return invalid("Shadowsocks 密码不能为空");
   if (!SUPPORTED_METHODS.has(method)) {
-    throw new NodeParseError("unsupported-method", "Surge 不支持此 Shadowsocks 加密方式");
+    throw new NodeParseError(
+      "unsupported-method",
+      "Surge 不支持此 Shadowsocks 加密方式",
+    );
   }
   return { method, password };
 }
@@ -75,26 +87,45 @@ function parseHostPort(value: string): { host: string; port: number } {
   const ipv6 = /^\[([^\]]+)]:(\d+)$/.exec(value);
   const separator = value.lastIndexOf(":");
   const host = ipv6?.[1] ?? (separator > 0 ? value.slice(0, separator) : "");
-  const portText = ipv6?.[2] ?? (separator > 0 ? value.slice(separator + 1) : "");
+  const portText =
+    ipv6?.[2] ?? (separator > 0 ? value.slice(separator + 1) : "");
   const port = Number(portText);
-  if (!host || !/^\d+$/.test(portText) || !Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (
+    !host ||
+    !/^\d+$/.test(portText) ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65_535
+  ) {
     return invalid("Shadowsocks 主机或端口无效");
   }
   return { host, port };
 }
 
-function parsePlugin(plugin: string | null): Pick<SurgeShadowsocksNode, "obfs" | "obfsHost"> {
+function parsePlugin(
+  plugin: string | null,
+): Pick<SurgeShadowsocksNode, "obfs" | "obfsHost"> {
   if (!plugin) return {};
 
   const [command, ...options] = plugin.split(";");
   if (command !== "obfs-local" && command !== "simple-obfs") {
-    throw new NodeParseError("unsupported-plugin", "Surge 不支持此 Shadowsocks 插件");
+    throw new NodeParseError(
+      "unsupported-plugin",
+      "Surge 不支持此 Shadowsocks 插件",
+    );
   }
 
-  const values = new Map(options.map((option) => option.split(/=(.*)/s).slice(0, 2) as [string, string]));
+  const values = new Map(
+    options.map(
+      (option) => option.split(/=(.*)/s).slice(0, 2) as [string, string],
+    ),
+  );
   const obfs = values.get("obfs");
   if (obfs !== "http" && obfs !== "tls") {
-    throw new NodeParseError("unsupported-plugin", "Surge 不支持此 Shadowsocks 插件");
+    throw new NodeParseError(
+      "unsupported-plugin",
+      "Surge 不支持此 Shadowsocks 插件",
+    );
   }
   const obfsHost = values.get("obfs-host");
   return { obfs, ...(obfsHost ? { obfsHost } : {}) };
@@ -122,8 +153,13 @@ export function parseShadowsocksUri(uri: string): SurgeShadowsocksNode {
       return invalid();
     }
     const rawUserinfo = authority.slice(0, authority.lastIndexOf("@"));
-    const credentials = parseCredentials(rawUserinfo, !rawUserinfo.includes(":"));
-    const parsedAddress = parseHostPort(authority.slice(authority.lastIndexOf("@") + 1));
+    const credentials = parseCredentials(
+      rawUserinfo,
+      !rawUserinfo.includes(":"),
+    );
+    const parsedAddress = parseHostPort(
+      authority.slice(authority.lastIndexOf("@") + 1),
+    );
     const host = parsed.hostname.replace(/^\[|]$/g, "");
     const port = parsedAddress.port;
     if (!host) return invalid("Shadowsocks 主机或端口无效");

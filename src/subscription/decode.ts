@@ -8,7 +8,10 @@ export class SubscriptionDecodeError extends Error {
 const RECOGNIZED_URI = /\b(?:ss|vless):\/\//i;
 
 function normalizeText(input: string): string {
-  return input.trim().replace(/^\uFEFF/, "").trim();
+  return input
+    .trim()
+    .replace(/^\uFEFF/, "")
+    .trim();
 }
 
 function extractLines(input: string): string[] {
@@ -24,7 +27,10 @@ function decodeBase64Utf8(input: string): string | undefined {
     return undefined;
   }
 
-  const normalized = compact.replace(/-/g, "+").replace(/_/g, "/").replace(/=+$/, "");
+  const normalized = compact
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .replace(/=+$/, "");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
 
   try {

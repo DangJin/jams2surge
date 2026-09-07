@@ -3,7 +3,10 @@ import type { AddressInfo } from "node:net";
 
 import { describe, expect, it } from "vitest";
 
-import { fetchSubscription, SubscriptionFetchError } from "../src/subscription/fetch";
+import {
+  fetchSubscription,
+  SubscriptionFetchError,
+} from "../src/subscription/fetch";
 
 async function withServer(
   handler: (response: ServerResponse) => void,
@@ -19,7 +22,9 @@ async function withServer(
   try {
     await run(`http://127.0.0.1:${address.port}/subscription?token=private`);
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 
@@ -27,7 +32,9 @@ describe("fetchSubscription", () => {
   it("downloads a successful UTF-8 response", async () => {
     await withServer(
       (response) => {
-        response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+        response.writeHead(200, {
+          "content-type": "text/plain; charset=utf-8",
+        });
         response.end("ss://example");
       },
       async (url) => {
@@ -37,7 +44,9 @@ describe("fetchSubscription", () => {
   });
 
   it("rejects unsupported URL schemes before making a request", async () => {
-    await expect(fetchSubscription("file:///private/subscription")).rejects.toThrowError(
+    await expect(
+      fetchSubscription("file:///private/subscription"),
+    ).rejects.toThrowError(
       new SubscriptionFetchError("订阅地址必须使用 HTTP 或 HTTPS"),
     );
   });
@@ -69,7 +78,9 @@ describe("fetchSubscription", () => {
         response.end("small");
       },
       async (url) => {
-        await expect(fetchSubscription(url, { maxBytes: 10 })).rejects.toThrow("订阅响应过大");
+        await expect(fetchSubscription(url, { maxBytes: 10 })).rejects.toThrow(
+          "订阅响应过大",
+        );
       },
     );
   });
@@ -81,7 +92,9 @@ describe("fetchSubscription", () => {
         response.end("67890");
       },
       async (url) => {
-        await expect(fetchSubscription(url, { maxBytes: 8 })).rejects.toThrow("订阅响应过大");
+        await expect(fetchSubscription(url, { maxBytes: 8 })).rejects.toThrow(
+          "订阅响应过大",
+        );
       },
     );
   });
@@ -90,7 +103,9 @@ describe("fetchSubscription", () => {
     await withServer(
       (response) => response.end(Buffer.from([0xc3, 0x28])),
       async (url) => {
-        await expect(fetchSubscription(url)).rejects.toThrow("订阅响应不是有效的 UTF-8 文本");
+        await expect(fetchSubscription(url)).rejects.toThrow(
+          "订阅响应不是有效的 UTF-8 文本",
+        );
       },
     );
   });
@@ -101,7 +116,9 @@ describe("fetchSubscription", () => {
         setTimeout(() => response.end("too late"), 100);
       },
       async (url) => {
-        await expect(fetchSubscription(url, { timeoutMs: 20 })).rejects.toThrow("订阅请求超时");
+        await expect(fetchSubscription(url, { timeoutMs: 20 })).rejects.toThrow(
+          "订阅请求超时",
+        );
       },
     );
   });

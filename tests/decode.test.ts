@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeSubscription, SubscriptionDecodeError } from "../src/subscription/decode";
+import {
+  decodeSubscription,
+  SubscriptionDecodeError,
+} from "../src/subscription/decode";
 
 describe("decodeSubscription", () => {
   it("keeps non-empty lines from a recognized plain-text subscription in order", () => {
-    expect(decodeSubscription("ss://one\n\nvless://two\nunknown://three")).toEqual([
-      "ss://one",
-      "vless://two",
-      "unknown://three",
-    ]);
+    expect(
+      decodeSubscription("ss://one\n\nvless://two\nunknown://three"),
+    ).toEqual(["ss://one", "vless://two", "unknown://three"]);
   });
 
   it("decodes standard Base64 with omitted padding", () => {
-    const encoded = Buffer.from("ss://one\nvless://two", "utf8").toString("base64").replace(/=+$/, "");
+    const encoded = Buffer.from("ss://one\nvless://two", "utf8")
+      .toString("base64")
+      .replace(/=+$/, "");
 
     expect(decodeSubscription(encoded)).toEqual(["ss://one", "vless://two"]);
   });
