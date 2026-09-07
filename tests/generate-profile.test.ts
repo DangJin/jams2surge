@@ -40,6 +40,7 @@ Osaka = ss, 2001:db8::1, 443, encrypt-method=chacha20-ietf-poly1305, password="p
 Proxy = select, Tokyo, Osaka, DIRECT
 
 [Rule]
+DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
 FINAL,Proxy
 `);
   });
@@ -58,6 +59,9 @@ FINAL,Proxy
 
     expect(profile).toContain('password=" a[Rule]FINAL,DIRECT "');
     expect(profile.match(/^\[Rule]$/gm)).toHaveLength(1);
+    expect(profile).toContain(
+      "DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching",
+    );
   });
 
   it("rejects an empty node list", () => {

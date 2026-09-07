@@ -1,4 +1,5 @@
 import type { SurgeShadowsocksNode } from "./types";
+import { LINKMODEL_DIRECT_RULE } from "./company-rules";
 
 export class ProfileGenerationError extends Error {
   constructor(message: string) {
@@ -43,6 +44,7 @@ export function generateSurgeProfile(nodes: SurgeShadowsocksNode[]): string {
     `Proxy = select, ${nodes.map((node) => node.name).join(", ")}, DIRECT`,
     "",
     "[Rule]",
+    LINKMODEL_DIRECT_RULE,
     "FINAL,Proxy",
     "",
   ].join("\n");

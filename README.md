@@ -49,6 +49,14 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 
 最小配置的默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。模板模式保留上游规则，并把生成的节点接入模板的“代理”策略组；OpenAI、Claude、谷歌服务、漏网之鱼等下游策略组会继续引用它。
 
+两种输出模式都会在 `[Rule]` 顶部加入 LinkModel 公司产品直连规则：
+
+```ini
+DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
+```
+
+它覆盖 `linkmodel.ai` 主域名及所有层级的子域名。模板已有相同 DIRECT 规则时只会规范化该行，不会重复添加。
+
 ## 隐私与限制
 
 - 订阅由扩展直接从本机请求，不经过 Jams2Surge 服务器。

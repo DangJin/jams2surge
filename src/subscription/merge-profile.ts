@@ -1,3 +1,4 @@
+import { ensureLinkModelDirectRule } from "./company-rules";
 import { generateSurgeProxyLine } from "./generate-profile";
 import type { SurgeShadowsocksNode } from "./types";
 
@@ -102,6 +103,10 @@ export function mergeSurgeTemplate(
   } else {
     lines[primaryGroupLine] = `代理 = select, ${nodeNames.join(", ")}, DIRECT`;
   }
+
+  const ruleStart = findSection(lines, "Rule");
+  if (ruleStart < 0) throw new TemplateMergeError("模板中缺少 [Rule] section");
+  ensureLinkModelDirectRule(lines, ruleStart, findSectionEnd(lines, ruleStart));
 
   return `${lines.join("\n")}\n`;
 }

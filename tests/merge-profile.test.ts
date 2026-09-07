@@ -50,6 +50,7 @@ Osaka = ss, osaka.example.com, 443, encrypt-method=chacha20-ietf-poly1305, passw
 代理 = select, 自动选择, Tokyo, Osaka, DIRECT
 OpenAI = select, 代理, DIRECT
 [Rule]
+DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
 FINAL,代理
 `);
   });
@@ -96,5 +97,20 @@ FINAL,代理
     expect(() =>
       mergeSurgeTemplate(template, [], { autoSelect: true }),
     ).toThrowError(new TemplateMergeError("没有可合并的 Shadowsocks 节点"));
+  });
+
+  it("does not duplicate an existing LinkModel direct rule", () => {
+    const existingRuleTemplate = template.replace(
+      "[Rule]",
+      "[Rule]\nDOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching",
+    );
+
+    const profile = mergeSurgeTemplate(existingRuleTemplate, nodes, {
+      autoSelect: false,
+    });
+
+    expect(
+      profile.match(/^DOMAIN-SUFFIX,linkmodel\.ai,DIRECT,extended-matching$/gm),
+    ).toHaveLength(1);
   });
 });
