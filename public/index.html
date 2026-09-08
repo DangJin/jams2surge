@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="在浏览器本地生成 Jams2Surge 在线订阅地址。" />
+    <title>Jams2Surge 在线订阅</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Jams2Surge</p>
+        <h1>生成在线订阅地址</h1>
+        <p class="intro">粘贴上游订阅地址，生成可在 Surge 中使用的在线转换地址。</p>
+      </header>
+
+      <aside class="warning" aria-label="隐私提醒">
+        生成地址包含原始订阅链接。请勿公开分享，也不要粘贴到不可信的网站。
+      </aside>
+
+      <form id="subscription-form">
+        <div class="field">
+          <label for="upstream-url">上游订阅地址</label>
+          <input
+            id="upstream-url"
+            name="url"
+            type="url"
+            inputmode="url"
+            autocomplete="url"
+            placeholder="https://provider.example/sub?token=..."
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="mode">输出模式</label>
+          <select id="mode" name="mode">
+            <option value="template">结合晚安 Surge 模板</option>
+            <option value="minimal">最小独立配置</option>
+          </select>
+        </div>
+
+        <label class="check-row" for="auto-select">
+          <input id="auto-select" name="autoSelect" type="checkbox" checked />
+          添加“自动选择”测速组
+        </label>
+
+        <button type="submit">生成地址</button>
+      </form>
+
+      <section class="result" aria-labelledby="result-label">
+        <label id="result-label" for="result">生成结果</label>
+        <textarea id="result" rows="5" readonly placeholder="生成的订阅地址会显示在这里"></textarea>
+        <button id="copy-button" class="secondary" type="button" disabled>复制地址</button>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <script type="module" src="/generate-url.mjs"></script>
+  </body>
+</html>
