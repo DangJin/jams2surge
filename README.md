@@ -52,13 +52,17 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 
 最小配置的默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。模板模式保留上游规则，并把生成的节点接入模板的“代理”策略组；OpenAI、Claude、谷歌服务、漏网之鱼等下游策略组会继续引用它。
 
-两种输出模式都会在 `[Rule]` 顶部加入 LinkModel 公司产品直连规则：
+两种输出模式都会在 `[Rule]` 顶部加入公司产品直连规则。除 LinkModel 外，配置还内置 41 个阿里系根域名，覆盖阿里云、淘宝、天猫、1688、支付宝、钉钉、高德、饿了么、优酷、UC、AliExpress 等主要产品。
+
+其中阿里云核心规则包括：
 
 ```ini
-DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
+DOMAIN-SUFFIX,aliyun.com,DIRECT,extended-matching
+DOMAIN-SUFFIX,aliyuncs.com,DIRECT,extended-matching
+DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 ```
 
-它覆盖 `linkmodel.ai` 主域名及所有层级的子域名。模板已有相同 DIRECT 规则时只会规范化该行，不会重复添加。
+`DOMAIN-SUFFIX` 会覆盖根域名及所有层级的子域名，因此 RDS、OSS 和 OpenAPI 等使用 `*.aliyuncs.com` 的服务端点都会直连。规则完全内置，不依赖远程规则集；模板已有相同 DIRECT 规则时会统一去重并规范化。
 
 ## 隐私与限制
 

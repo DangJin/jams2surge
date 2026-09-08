@@ -5,6 +5,7 @@ import {
   TemplateMergeError,
 } from "../src/subscription/merge-profile";
 import type { SurgeShadowsocksNode } from "../src/subscription/types";
+import { EXPECTED_COMPANY_DIRECT_RULES } from "./fixtures/company-direct-domains";
 
 const template = `[General]
 loglevel = notify
@@ -50,7 +51,7 @@ Osaka = ss, osaka.example.com, 443, encrypt-method=chacha20-ietf-poly1305, passw
 代理 = select, 自动选择, Tokyo, Osaka, DIRECT
 OpenAI = select, 代理, DIRECT
 [Rule]
-DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
+${EXPECTED_COMPANY_DIRECT_RULES.join("\n")}
 FINAL,代理
 `);
   });
@@ -112,5 +113,24 @@ FINAL,代理
     expect(
       profile.match(/^DOMAIN-SUFFIX,linkmodel\.ai,DIRECT,extended-matching$/gm),
     ).toHaveLength(1);
+  });
+
+  it("normalizes an existing Alibaba direct rule without duplicating it", () => {
+    const existingRuleTemplate = template.replace(
+      "[Rule]",
+      '[Rule]\n domain-suffix , ALIYUNCS.COM , direct \nDOMAIN-SUFFIX,"aliyuncs.com",DIRECT',
+    );
+
+    const profile = mergeSurgeTemplate(existingRuleTemplate, nodes, {
+      autoSelect: false,
+    });
+
+    expect(
+      profile.match(/^DOMAIN-SUFFIX,aliyuncs\.com,DIRECT,extended-matching$/gm),
+    ).toHaveLength(1);
+    expect(profile.match(/aliyuncs\.com/gi)).toHaveLength(1);
+    expect(profile).toContain(
+      "DOMAIN-SUFFIX,alipay.com,DIRECT,extended-matching",
+    );
   });
 });

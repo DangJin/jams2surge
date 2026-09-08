@@ -5,6 +5,7 @@ import {
   ProfileGenerationError,
 } from "../src/subscription/generate-profile";
 import type { SurgeShadowsocksNode } from "../src/subscription/types";
+import { EXPECTED_COMPANY_DIRECT_RULES } from "./fixtures/company-direct-domains";
 
 describe("generateSurgeProfile", () => {
   it("generates a deterministic minimal Surge profile in subscription order", () => {
@@ -40,9 +41,27 @@ Osaka = ss, 2001:db8::1, 443, encrypt-method=chacha20-ietf-poly1305, password="p
 Proxy = select, Tokyo, Osaka, DIRECT
 
 [Rule]
-DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching
+${EXPECTED_COMPANY_DIRECT_RULES.join("\n")}
 FINAL,Proxy
 `);
+  });
+
+  it("routes every approved Alibaba product domain directly before the final rule", () => {
+    const node: SurgeShadowsocksNode = {
+      name: "Tokyo",
+      host: "example.com",
+      port: 443,
+      method: "aes-128-gcm",
+      password: "secret",
+      udpRelay: true,
+    };
+
+    const profileLines = generateSurgeProfile([node]).split("\n");
+    const ruleStart = profileLines.indexOf("[Rule]");
+    const finalRule = profileLines.indexOf("FINAL,Proxy");
+    const ruleLines = profileLines.slice(ruleStart + 1, finalRule);
+
+    expect(ruleLines).toEqual(EXPECTED_COMPANY_DIRECT_RULES);
   });
 
   it("removes line breaks and quotes values that could inject configuration", () => {
