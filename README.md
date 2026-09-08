@@ -1,6 +1,6 @@
 # Jams2Surge
 
-Jams2Surge 是一个仅在本机运行的 Raycast 扩展。它下载代理订阅，将其中兼容的 `ss://` 节点转换为可复制或保存的 Surge profile。
+Jams2Surge 可作为本机 Raycast 扩展使用，也可选择部署为 Vercel 在线服务。它下载代理订阅，将其中兼容的 `ss://` 节点转换为可复制、保存或在线订阅的 Surge profile。
 
 ## 功能
 
@@ -66,7 +66,7 @@ DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 
 ## Vercel 在线服务
 
-将仓库导入 Vercel 后直接部署即可，无需数据库、Redis 或环境变量。Vercel 会按 `vercel.json` 执行构建，并发布静态生成页和 `/api/subscription` Function。
+将仓库导入 Vercel 后，将项目的 **Root Directory** 设置为 `jams2surge`，再直接部署即可。服务无需数据库、Redis 或环境变量；Vercel 会按 `vercel.json` 执行构建，并发布静态生成页和 `/api/subscription` Function。
 
 在线接口只接受 `GET /api/subscription`，查询参数如下：
 
