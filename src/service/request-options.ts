@@ -13,11 +13,32 @@ export class RequestOptionsError extends Error {
   }
 }
 
+export function encodeSubscriptionSource(upstreamUrl: string): string {
+  return Buffer.from(upstreamUrl, "utf8").toString("base64url");
+}
+
+function decodeSubscriptionSource(source: string): string {
+  if (!/^[A-Za-z0-9_-]+$/.test(source) || source.length % 4 === 1) {
+    throw new RequestOptionsError("上游订阅地址无效");
+  }
+
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(
+      Buffer.from(source, "base64url"),
+    );
+  } catch {
+    throw new RequestOptionsError("上游订阅地址无效");
+  }
+}
+
 export function parseSubscriptionRequest(
   requestUrl: string,
 ): SubscriptionRequestOptions {
   const params = new URL(requestUrl).searchParams;
-  const upstreamUrl = params.get("url");
+  const source = params.get("source");
+  const upstreamUrl = source
+    ? decodeSubscriptionSource(source)
+    : params.get("url");
   if (!upstreamUrl) throw new RequestOptionsError("缺少上游订阅地址");
 
   const rawMode = params.get("mode") ?? "template";

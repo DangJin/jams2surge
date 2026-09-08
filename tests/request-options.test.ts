@@ -26,6 +26,29 @@ describe("parseSubscriptionRequest", () => {
     });
   });
 
+  it("decodes a Base64URL source without path separators", () => {
+    expect(
+      parseSubscriptionRequest(
+        "https://service.test/api/subscription?source=aHR0cHM6Ly9wcm92aWRlci5leGFtcGxlL3N1Yj90b2tlbj1hJnVzZXI9Yg&mode=minimal&autoSelect=0",
+      ),
+    ).toEqual({
+      upstreamUrl: "https://provider.example/sub?token=a&user=b",
+      mode: "minimal",
+      autoSelect: false,
+    });
+  });
+
+  it.each(["*", "a", "_w"])(
+    "rejects an invalid Base64URL source: %s",
+    (source) => {
+      expect(() =>
+        parseSubscriptionRequest(
+          `https://service.test/api/subscription?source=${encodeURIComponent(source)}`,
+        ),
+      ).toThrowError("上游订阅地址无效");
+    },
+  );
+
   it.each([
     ["https://service.test/api/subscription", "缺少上游订阅地址"],
     ["https://service.test/api/subscription?url=", "缺少上游订阅地址"],

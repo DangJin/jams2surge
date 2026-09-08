@@ -1,4 +1,17 @@
-export function buildSubscriptionUrl(origin, { upstreamUrl, mode, autoSelect }) {
+function encodeSubscriptionSource(upstreamUrl) {
+  const bytes = new TextEncoder().encode(upstreamUrl);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+export function buildSubscriptionUrl(
+  origin,
+  { upstreamUrl, mode, autoSelect },
+) {
   let upstream;
   try {
     upstream = new URL(upstreamUrl);
@@ -15,9 +28,15 @@ export function buildSubscriptionUrl(origin, { upstreamUrl, mode, autoSelect }) 
   }
 
   const generated = new URL("/api/subscription", origin);
-  generated.searchParams.set("url", upstream.toString());
+  generated.searchParams.set(
+    "source",
+    encodeSubscriptionSource(upstream.toString()),
+  );
   generated.searchParams.set("mode", mode);
-  generated.searchParams.set("autoSelect", mode === "template" && autoSelect ? "1" : "0");
+  generated.searchParams.set(
+    "autoSelect",
+    mode === "template" && autoSelect ? "1" : "0",
+  );
   return generated.toString();
 }
 
@@ -52,7 +71,8 @@ if (typeof document !== "undefined") {
     } catch (error) {
       result.value = "";
       copyButton.disabled = true;
-      status.textContent = error instanceof Error ? error.message : "无法生成地址。";
+      status.textContent =
+        error instanceof Error ? error.message : "无法生成地址。";
     }
   });
 

@@ -70,14 +70,14 @@ DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 
 在线接口只接受 `GET /api/subscription`，查询参数如下：
 
-- `url`：必填，使用 HTTPS 的上游订阅地址；
+- `source`：必填，使用 Base64URL 编码的 HTTPS 上游订阅地址；旧版 `url` 参数仍兼容；
 - `mode`：可选，`template`（默认）或 `minimal`；
 - `autoSelect`：可选，`1`（默认）或 `0`，仅模板模式生效。
 
 可用下面的命令安全生成带嵌套查询参数的示例地址：
 
 ```bash
-node -e 'const u=new URL("https://your-domain.example/api/subscription");u.searchParams.set("url","https://provider.example/sub?token=REPLACE_ME");u.searchParams.set("mode","template");u.searchParams.set("autoSelect","1");console.log(u.toString())'
+node -e 'const u=new URL("https://your-domain.example/api/subscription");u.searchParams.set("source",Buffer.from("https://provider.example/sub?token=REPLACE_ME").toString("base64url"));u.searchParams.set("mode","template");u.searchParams.set("autoSelect","1");console.log(u.toString())'
 ```
 
 接口会实时下载上游订阅并生成 Surge 配置。请求参数无效、订阅无法下载、没有兼容节点或生成结果过大时，会返回对应的 HTTP 错误状态和简短错误文本，不会返回失效配置。
@@ -95,7 +95,7 @@ node -e 'const u=new URL("https://your-domain.example/api/subscription");u.searc
 
 ## 在线服务的隐私与限制
 
-- 生成的 URL 包含完整上游订阅地址，可能含有访问令牌；请勿分享该 URL，也不要将其粘贴到不可信的网站。
+- 生成的 URL 以 Base64URL 携带完整上游订阅地址，可能含有访问令牌；Base64URL 不是加密，请勿分享该 URL，也不要将其粘贴到不可信的网站。
 - 服务没有身份验证，也没有服务端缓存或持久化存储；每次请求都会实时转换。
 - 上游地址必须使用 HTTPS，且解析到公网地址；重定向也会逐跳检查，以阻止访问内网地址。
 - 在线下载总超时不超过 15 秒，响应体上限为 4 MiB，最多跟随 3 次重定向。

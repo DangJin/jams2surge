@@ -2,6 +2,7 @@ import { convertSubscriptionText } from "../subscription/convert";
 import { generateSurgeProfile } from "../subscription/generate-profile";
 import { mergeSurgeTemplate } from "../subscription/merge-profile";
 import {
+  encodeSubscriptionSource,
   parseSubscriptionRequest,
   RequestOptionsError,
 } from "./request-options";
@@ -95,8 +96,17 @@ export function createSubscriptionHandler(
               autoSelect: options.autoSelect,
             })
           : generateSurgeProfile(result.nodes);
+      const managedUrl = new URL(request.url);
+      managedUrl.search = "";
+      managedUrl.searchParams.set(
+        "source",
+        encodeSubscriptionSource(options.upstreamUrl),
+      );
+      managedUrl.searchParams.set("mode", options.mode);
+      managedUrl.searchParams.set("autoSelect", options.autoSelect ? "1" : "0");
       const managedProfile =
-        `#!MANAGED-CONFIG ${request.url} interval=86400 strict=true\n` + profile;
+        `#!MANAGED-CONFIG ${managedUrl.toString()} interval=86400 strict=true\n` +
+        profile;
       if (
         new TextEncoder().encode(managedProfile).byteLength > MAX_RESPONSE_BYTES
       ) {

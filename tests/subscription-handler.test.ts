@@ -62,7 +62,7 @@ describe("createSubscriptionHandler", () => {
     const response = await handler(new Request(url));
 
     expect(await response.text()).toMatch(
-      /^#!MANAGED-CONFIG https:\/\/service\.test\/api\/subscription\?url=https%3A%2F%2Fupstream\.test%2Fsub&mode=minimal&autoSelect=0 interval=86400 strict=true\n\[General]/,
+      /^#!MANAGED-CONFIG https:\/\/service\.test\/api\/subscription\?source=aHR0cHM6Ly91cHN0cmVhbS50ZXN0L3N1Yg&mode=minimal&autoSelect=0 interval=86400 strict=true\n\[General]/,
     );
   });
 
