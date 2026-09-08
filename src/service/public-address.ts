@@ -25,12 +25,19 @@ const systemResolver: Resolver = async (hostname) => {
   });
 };
 
+const ipv6GlobalUnicastPrefix = ipaddr.IPv6.parse("2000::");
+
 export function isPublicIpAddress(value: string): boolean {
   if (!ipaddr.isValid(value)) return false;
 
   const address = ipaddr.parse(value);
   if (address instanceof ipaddr.IPv6 && address.isIPv4MappedAddress()) {
     return address.toIPv4Address().range() === "unicast";
+  }
+  if (address instanceof ipaddr.IPv6) {
+    return (
+      address.range() === "unicast" && address.match(ipv6GlobalUnicastPrefix, 3)
+    );
   }
 
   return address.range() === "unicast";
