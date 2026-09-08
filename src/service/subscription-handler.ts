@@ -1,4 +1,5 @@
 import { convertSubscriptionText } from "../subscription/convert";
+import { ALIBABA_DIRECT_DOMAINS } from "../subscription/company-rules";
 import { generateSurgeProfile } from "../subscription/generate-profile";
 import { mergeSurgeTemplate } from "../subscription/merge-profile";
 import {
@@ -16,6 +17,11 @@ const RESPONSE_HEADERS = {
   "cache-control": "private, no-store",
   "x-content-type-options": "nosniff",
 };
+const ALIBABA_DIRECT_RULES = new Set(
+  ALIBABA_DIRECT_DOMAINS.map(
+    (domain) => `DOMAIN-SUFFIX,${domain},DIRECT,extended-matching`,
+  ),
+);
 
 export interface SubscriptionHandlerDependencies {
   downloadText: (url: string) => Promise<string>;
@@ -57,6 +63,22 @@ function textResponse(
   });
 }
 
+function compactAlibabaRules(profile: string, requestUrl: string): string {
+  const domainSetUrl = new URL("/alibaba-domains.list", requestUrl).toString();
+  const domainSetRule = `DOMAIN-SET,${domainSetUrl},DIRECT,extended-matching`;
+  let inserted = false;
+
+  return profile
+    .split("\n")
+    .flatMap((line) => {
+      if (!ALIBABA_DIRECT_RULES.has(line)) return [line];
+      if (inserted) return [];
+      inserted = true;
+      return [domainSetRule];
+    })
+    .join("\n");
+}
+
 export function createSubscriptionHandler(
   dependencies: Partial<SubscriptionHandlerDependencies> = {},
 ): (request: Request) => Promise<Response> {
@@ -90,12 +112,13 @@ export function createSubscriptionHandler(
         return textResponse("没有可转换的 Shadowsocks 节点", 422);
       }
 
-      const profile =
+      const generatedProfile =
         options.mode === "template"
           ? mergeSurgeTemplate(template!, result.nodes, {
               autoSelect: options.autoSelect,
             })
           : generateSurgeProfile(result.nodes);
+      const profile = compactAlibabaRules(generatedProfile, request.url);
       const managedUrl = new URL(request.url);
       managedUrl.search = "";
       managedUrl.searchParams.set(

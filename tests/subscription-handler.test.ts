@@ -66,6 +66,33 @@ describe("createSubscriptionHandler", () => {
     );
   });
 
+  it.each(["minimal", "template"] as const)(
+    "collapses Alibaba rules into one hosted domain set in %s mode",
+    async (mode) => {
+      const handler = createSubscriptionHandler({
+        templateUrl: "https://template.test/Surge-Mac.conf",
+        downloadText: async (url) =>
+          url.includes("template.test") ? templateFixture : subscriptionWithTokyo,
+      });
+
+      const response = await handler(
+        request(
+          `url=https%3A%2F%2Fupstream.test%2Fsub&mode=${mode}&autoSelect=0`,
+        ),
+      );
+      const profile = await response.text();
+
+      expect(profile).toContain(
+        "DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching",
+      );
+      expect(profile).toContain(
+        "DOMAIN-SET,https://service.test/alibaba-domains.list,DIRECT,extended-matching",
+      );
+      expect(profile).not.toContain("DOMAIN-SUFFIX,aliyun.com,DIRECT");
+      expect(profile.match(/alibaba-domains\.list/g)).toHaveLength(1);
+    },
+  );
+
   it("rejects non-GET requests without downloading", async () => {
     const downloadText = vi.fn(async () => subscriptionWithTokyo);
     const response = await createSubscriptionHandler({ downloadText })(
