@@ -52,6 +52,20 @@ describe("createSubscriptionHandler", () => {
     expectSafeHeaders(first);
   });
 
+  it("marks a successful response as the same remotely managed profile", async () => {
+    const handler = createSubscriptionHandler({
+      downloadText: async () => subscriptionWithTokyo,
+    });
+    const url =
+      "https://service.test/api/subscription?url=https%3A%2F%2Fupstream.test%2Fsub&mode=minimal&autoSelect=0";
+
+    const response = await handler(new Request(url));
+
+    expect(await response.text()).toMatch(
+      /^#!MANAGED-CONFIG https:\/\/service\.test\/api\/subscription\?url=https%3A%2F%2Fupstream\.test%2Fsub&mode=minimal&autoSelect=0 interval=86400 strict=true\n\[General]/,
+    );
+  });
+
   it("rejects non-GET requests without downloading", async () => {
     const downloadText = vi.fn(async () => subscriptionWithTokyo);
     const response = await createSubscriptionHandler({ downloadText })(

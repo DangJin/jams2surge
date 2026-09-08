@@ -95,10 +95,14 @@ export function createSubscriptionHandler(
               autoSelect: options.autoSelect,
             })
           : generateSurgeProfile(result.nodes);
-      if (new TextEncoder().encode(profile).byteLength > MAX_RESPONSE_BYTES) {
+      const managedProfile =
+        `#!MANAGED-CONFIG ${request.url} interval=86400 strict=true\n` + profile;
+      if (
+        new TextEncoder().encode(managedProfile).byteLength > MAX_RESPONSE_BYTES
+      ) {
         return textResponse("生成的 Surge 配置超过大小限制", 502);
       }
-      return textResponse(profile, 200);
+      return textResponse(managedProfile, 200);
     } catch (error) {
       const downloadFailure =
         error instanceof DownloadFailure ? error : undefined;
