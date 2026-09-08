@@ -21,6 +21,27 @@ export interface SubscriptionHandlerDependencies {
   templateUrl: string;
 }
 
+type DownloadSource = "upstream" | "template";
+
+class DownloadFailure {
+  constructor(
+    readonly source: DownloadSource,
+    readonly cause: unknown,
+  ) {}
+}
+
+async function downloadFrom(
+  downloadText: (url: string) => Promise<string>,
+  url: string,
+  source: DownloadSource,
+): Promise<string> {
+  try {
+    return await downloadText(url);
+  } catch (error) {
+    throw new DownloadFailure(source, error);
+  }
+}
+
 function textResponse(
   body: string,
   status: number,
@@ -58,8 +79,10 @@ export function createSubscriptionHandler(
 
     try {
       const [upstream, template] = await Promise.all([
-        downloadText(options.upstreamUrl),
-        ...(options.mode === "template" ? [downloadText(templateUrl)] : []),
+        downloadFrom(downloadText, options.upstreamUrl, "upstream"),
+        ...(options.mode === "template"
+          ? [downloadFrom(downloadText, templateUrl, "template")]
+          : []),
       ]);
       const result = convertSubscriptionText(upstream);
       if (result.nodes.length === 0) {
@@ -77,10 +100,19 @@ export function createSubscriptionHandler(
       }
       return textResponse(profile, 200);
     } catch (error) {
-      if (error instanceof SafeDownloadError) {
+      const downloadFailure =
+        error instanceof DownloadFailure ? error : undefined;
+      const cause = downloadFailure?.cause ?? error;
+      if (cause instanceof SafeDownloadError) {
+        if (
+          downloadFailure?.source === "upstream" &&
+          (cause.code === "invalid" || cause.code === "unsafe")
+        ) {
+          return textResponse("上游订阅地址无效", 400);
+        }
         return textResponse(
-          error.code === "timeout" ? "上游订阅下载超时" : "上游订阅下载失败",
-          error.code === "timeout" ? 504 : 502,
+          cause.code === "timeout" ? "上游订阅下载超时" : "上游订阅下载失败",
+          cause.code === "timeout" ? 504 : 502,
         );
       }
       return textResponse("在线订阅转换失败", 502);

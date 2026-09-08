@@ -93,6 +93,56 @@ describe("createSubscriptionHandler", () => {
     expectSafeHeaders(response);
   });
 
+  it.each(["invalid" as const, "unsafe" as const])(
+    "maps caller-provided upstream %s errors to 400 without leaking details",
+    async (code) => {
+      const error = new SafeDownloadError(code);
+      error.message = "injected internal detail token=abc";
+      const response = await createSubscriptionHandler({
+        downloadText: async () => {
+          throw error;
+        },
+      })(
+        request(
+          "url=https%3A%2F%2Fupstream.test%2Fsub%3Ftoken%3Dabc&mode=minimal",
+        ),
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(400);
+      expect(body).toBe("上游订阅地址无效");
+      expect(body).not.toContain("token=abc");
+      expect(body).not.toContain("injected internal detail");
+      expectSafeHeaders(response);
+    },
+  );
+
+  it.each(["invalid" as const, "unsafe" as const])(
+    "keeps fixed-template %s errors as 502 without leaking details",
+    async (code) => {
+      const error = new SafeDownloadError(code);
+      error.message = "injected template detail token=abc";
+      const response = await createSubscriptionHandler({
+        templateUrl: "https://template.test/Surge-Mac.conf",
+        downloadText: async (url) => {
+          if (url.includes("template.test")) throw error;
+          return subscriptionWithTokyo;
+        },
+      })(
+        request(
+          "url=https%3A%2F%2Fupstream.test%2Fsub%3Ftoken%3Dabc&mode=template",
+        ),
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(502);
+      expect(body).toBe("上游订阅下载失败");
+      expect(body).not.toContain("token=abc");
+      expect(body).not.toContain("injected template detail");
+      expectSafeHeaders(response);
+    },
+  );
+
   it.each([
     ["timeout" as const, 504],
     ["network" as const, 502],
