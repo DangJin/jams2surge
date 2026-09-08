@@ -123,11 +123,13 @@ export async function downloadPublicHttpsText(
   if (
     !Number.isSafeInteger(timeoutMs) ||
     timeoutMs <= 0 ||
-    timeoutMs > 2_147_483_647 ||
+    timeoutMs > DEFAULT_TIMEOUT_MS ||
     !Number.isSafeInteger(maxBytes) ||
     maxBytes < 0 ||
+    maxBytes > DEFAULT_MAX_BYTES ||
     !Number.isSafeInteger(maxRedirects) ||
-    maxRedirects < 0
+    maxRedirects < 0 ||
+    maxRedirects > DEFAULT_MAX_REDIRECTS
   ) {
     throw new SafeDownloadError("invalid");
   }

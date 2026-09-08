@@ -36,6 +36,24 @@ afterEach(() => {
 });
 
 describe("downloadPublicHttpsText", () => {
+  it.each([
+    { timeoutMs: 15_001 },
+    { maxBytes: 4_194_305 },
+    { maxRedirects: 4 },
+  ])("rejects an override above the hard cap: %j", async (override) => {
+    const lookup = vi.fn<Resolver>(resolver);
+    const transport = vi.fn<RequestTransport>(async () => response());
+    await expect(
+      downloadPublicHttpsText("https://upstream.test/sub", {
+        ...override,
+        resolver: lookup,
+        transport,
+      }),
+    ).rejects.toMatchObject({ code: "invalid" });
+    expect(lookup).not.toHaveBeenCalled();
+    expect(transport).not.toHaveBeenCalled();
+  });
+
   it("downloads UTF-8 using validated addresses and only fixed headers", async () => {
     const resolvedHostnames: string[] = [];
     const transport = vi.fn<RequestTransport>(async () => response());
