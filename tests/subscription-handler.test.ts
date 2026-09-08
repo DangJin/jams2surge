@@ -12,6 +12,15 @@ function sip002(name: string, password = "secret"): string {
 
 const subscriptionWithTokyo = sip002("Tokyo");
 const subscriptionWithOsaka = sip002("Osaka");
+const templateFixture = `[General]
+loglevel = notify
+[Proxy]
+# nodes
+[Proxy Group]
+代理 = select, DIRECT
+[Rule]
+FINAL,代理
+`;
 
 function request(query: string, init?: RequestInit): Request {
   return new Request(`https://service.test/api/subscription?${query}`, init);
@@ -57,10 +66,7 @@ describe("createSubscriptionHandler", () => {
 
   it.each([
     ["", "缺少上游订阅地址"],
-    [
-      "url=https%3A%2F%2Fupstream.test%2Fsub&mode=other",
-      "输出模式无效",
-    ],
+    ["url=https%3A%2F%2Fupstream.test%2Fsub&mode=other", "输出模式无效"],
     [
       "url=https%3A%2F%2Fupstream.test%2Fsub&autoSelect=yes",
       "自动选择参数无效",
@@ -91,19 +97,22 @@ describe("createSubscriptionHandler", () => {
     ["timeout" as const, 504],
     ["network" as const, 502],
     ["http" as const, 502],
-  ])("maps safe download %s errors without leaking details", async (code, status) => {
-    const response = await createSubscriptionHandler({
-      downloadText: async () => {
-        throw new SafeDownloadError(code);
-      },
-    })(request("url=https%3A%2F%2Fupstream.test%2Fsub%3Ftoken%3Dabc"));
-    const body = await response.text();
+  ])(
+    "maps safe download %s errors without leaking details",
+    async (code, status) => {
+      const response = await createSubscriptionHandler({
+        downloadText: async () => {
+          throw new SafeDownloadError(code);
+        },
+      })(request("url=https%3A%2F%2Fupstream.test%2Fsub%3Ftoken%3Dabc"));
+      const body = await response.text();
 
-    expect(response.status).toBe(status);
-    expect(body).not.toContain("token=abc");
-    expect(body).not.toContain("upstream response fixture");
-    expectSafeHeaders(response);
-  });
+      expect(response.status).toBe(status);
+      expect(body).not.toContain("token=abc");
+      expect(body).not.toContain("upstream response fixture");
+      expectSafeHeaders(response);
+    },
+  );
 
   it("hides unexpected exception messages", async () => {
     const response = await createSubscriptionHandler({
@@ -131,5 +140,52 @@ describe("createSubscriptionHandler", () => {
     expect(body).toBe("生成的 Surge 配置超过大小限制");
     expect(body).not.toContain("A".repeat(1_000));
     expectSafeHeaders(response);
+  });
+
+  it.each([
+    ["1", "自动选择 = url-test"],
+    ["0", "代理 = select, Tokyo, DIRECT"],
+  ])("merges the fixed template with autoSelect=%s", async (flag, expected) => {
+    const requested: string[] = [];
+    const handler = createSubscriptionHandler({
+      templateUrl: "https://template.test/Surge-Mac.conf",
+      downloadText: async (url) => {
+        requested.push(url);
+        return url.includes("template.test")
+          ? templateFixture
+          : subscriptionWithTokyo;
+      },
+    });
+
+    const response = await handler(
+      request(
+        `url=https%3A%2F%2Fupstream.test%2Fsub&mode=template&autoSelect=${flag}`,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain(expected);
+    expect(requested).toEqual([
+      "https://upstream.test/sub",
+      "https://template.test/Surge-Mac.conf",
+    ]);
+  });
+
+  it("downloads only the upstream subscription in minimal mode", async () => {
+    const requested: string[] = [];
+    const handler = createSubscriptionHandler({
+      templateUrl: "https://template.test/Surge-Mac.conf",
+      downloadText: async (url) => {
+        requested.push(url);
+        return subscriptionWithTokyo;
+      },
+    });
+
+    const response = await handler(
+      request("url=https%3A%2F%2Fupstream.test%2Fsub&mode=minimal"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual(["https://upstream.test/sub"]);
   });
 });
