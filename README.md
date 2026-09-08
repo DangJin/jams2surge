@@ -66,7 +66,7 @@ DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 
 ## Vercel 在线服务
 
-将仓库导入 Vercel 后，将项目的 **Root Directory** 设置为 `jams2surge`，再直接部署即可。服务无需数据库、Redis 或环境变量；Vercel 会按 `vercel.json` 执行构建，并发布静态生成页和 `/api/subscription` Function。
+将仓库导入 Vercel 后直接部署即可，**Root Directory** 保持仓库根目录。服务无需数据库、Redis 或环境变量；Vercel 会按 `vercel.json` 执行构建，并发布静态生成页和 `/api/subscription` Function。
 
 在线接口只接受 `GET /api/subscription`，查询参数如下：
 
