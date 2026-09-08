@@ -64,6 +64,43 @@ DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 
 `DOMAIN-SUFFIX` 会覆盖根域名及所有层级的子域名，因此 RDS、OSS 和 OpenAPI 等使用 `*.aliyuncs.com` 的服务端点都会直连。规则完全内置，不依赖远程规则集；模板已有相同 DIRECT 规则时会统一去重并规范化。
 
+## Vercel 在线服务
+
+将仓库导入 Vercel 后直接部署即可，无需数据库、Redis 或环境变量。Vercel 会按 `vercel.json` 执行构建，并发布静态生成页和 `/api/subscription` Function。
+
+在线接口只接受 `GET /api/subscription`，查询参数如下：
+
+- `url`：必填，使用 HTTPS 的上游订阅地址；
+- `mode`：可选，`template`（默认）或 `minimal`；
+- `autoSelect`：可选，`1`（默认）或 `0`，仅模板模式生效。
+
+可用下面的命令安全生成带嵌套查询参数的示例地址：
+
+```bash
+node -e 'const u=new URL("https://your-domain.example/api/subscription");u.searchParams.set("url","https://provider.example/sub?token=REPLACE_ME");u.searchParams.set("mode","template");u.searchParams.set("autoSelect","1");console.log(u.toString())'
+```
+
+接口会实时下载上游订阅并生成 Surge 配置。请求参数无效、订阅无法下载、没有兼容节点或生成结果过大时，会返回对应的 HTTP 错误状态和简短错误文本，不会返回失效配置。
+
+## 生成在线订阅地址
+
+部署后打开站点首页：
+
+1. 粘贴 HTTPS 上游订阅地址；
+2. 选择模板或最小输出模式；
+3. 按需启用“自动选择”，然后点击“生成地址”；
+4. 复制结果并添加到 Surge。
+
+地址完全在浏览器本地生成，生成过程不会请求上游订阅或第三方服务。最小模式会自动关闭“自动选择”。
+
+## 在线服务的隐私与限制
+
+- 生成的 URL 包含完整上游订阅地址，可能含有访问令牌；请勿分享该 URL，也不要将其粘贴到不可信的网站。
+- 服务没有身份验证，也没有服务端缓存或持久化存储；每次请求都会实时转换。
+- 上游地址必须使用 HTTPS，且解析到公网地址；重定向也会逐跳检查，以阻止访问内网地址。
+- 在线下载总超时不超过 15 秒，响应体上限为 4 MiB，最多跟随 3 次重定向。
+- 转换失败会返回 HTTP 错误；错误文本不会包含完整订阅地址、凭据或订阅响应正文。
+
 ## 隐私与限制
 
 - 订阅由扩展直接从本机请求，不经过 Jams2Surge 服务器。
@@ -80,6 +117,7 @@ npm test
 npm run typecheck
 npm run lint
 npm run build
+npm run build:vercel
 ```
 
 下载相关测试只使用监听在 `127.0.0.1` 随机端口的临时 HTTP 服务，不访问真实订阅。
