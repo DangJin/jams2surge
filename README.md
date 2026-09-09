@@ -15,6 +15,8 @@ Jams2Surge 可作为本机 Raycast 扩展使用，也可选择部署为 Vercel �
 
 Surge 当前不原生支持 VLESS。扩展不会把 VLESS 伪装成 VMess 或生成无法工作的代理行，因此 VLESS 节点只会出现在“未转换项目”中。
 
+对于服务器地址会轮换、但节点名称包含稳定 `*.portablesubmarines.com` 主机名的 JMS Shadowsocks 节点，转换结果会使用该主机名连接。供应商切换 IP 后由 DNS 自动跟随，不依赖 Surge 恰好先完成托管配置更新。
+
 ## 环境要求
 
 - macOS 和 [Raycast](https://www.raycast.com/)

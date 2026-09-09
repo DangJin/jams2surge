@@ -71,6 +71,54 @@ describe("parseShadowsocksUri", () => {
     });
   });
 
+  it("uses the stable JMS hostname embedded in the node name", () => {
+    const credentials = Buffer.from("aes-256-gcm:secret", "utf8").toString(
+      "base64url",
+    );
+    const name = encodeURIComponent(
+      "JMS-1448581@c81s1.portablesubmarines.com:29781",
+    );
+
+    expect(
+      parseShadowsocksUri(`ss://${credentials}@176.122.182.110:29781#${name}`),
+    ).toMatchObject({
+      name: "JMS-1448581@c81s1.portablesubmarines.com:29781",
+      host: "c81s1.portablesubmarines.com",
+      port: 29781,
+    });
+  });
+
+  it.each([
+    [
+      "a different port",
+      "176.122.182.110",
+      "JMS-1448581@c81s1.portablesubmarines.com:443",
+      "176.122.182.110",
+    ],
+    [
+      "an unrelated domain",
+      "176.122.182.110",
+      "JMS-1448581@node.example.com:29781",
+      "176.122.182.110",
+    ],
+    [
+      "an existing hostname",
+      "original.example.com",
+      "JMS-1448581@c81s1.portablesubmarines.com:29781",
+      "original.example.com",
+    ],
+  ])("does not replace the server for %s", (_case, server, name, expected) => {
+    const credentials = Buffer.from("aes-256-gcm:secret", "utf8").toString(
+      "base64url",
+    );
+
+    expect(
+      parseShadowsocksUri(
+        `ss://${credentials}@${server}:29781#${encodeURIComponent(name)}`,
+      ).host,
+    ).toBe(expected);
+  });
+
   it("rejects unsupported plugins with a safe typed error", () => {
     expect(() =>
       parseShadowsocksUri(

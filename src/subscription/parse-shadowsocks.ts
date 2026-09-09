@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 import type { SurgeShadowsocksNode } from "./types";
 
 const SUPPORTED_METHODS = new Set([
@@ -135,6 +137,17 @@ function parseName(fragment: string, host: string, port: number): string {
   return fragment ? decodeComponent(fragment) : `SS ${host}:${port}`;
 }
 
+function stableJmsHost(name: string, host: string, port: number): string {
+  if (isIP(host) === 0) return host;
+
+  const match =
+    /^JMS-\d+@([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.portablesubmarines\.com):(\d{1,5})$/i.exec(
+      name,
+    );
+  if (!match || Number(match[2]) !== port) return host;
+  return match[1]!.toLowerCase();
+}
+
 export function parseShadowsocksUri(uri: string): SurgeShadowsocksNode {
   if (!uri.toLowerCase().startsWith("ss://")) return invalid();
 
@@ -163,10 +176,11 @@ export function parseShadowsocksUri(uri: string): SurgeShadowsocksNode {
     const host = parsed.hostname.replace(/^\[|]$/g, "");
     const port = parsedAddress.port;
     if (!host) return invalid("Shadowsocks 主机或端口无效");
+    const name = parseName(fragment, host, port);
 
     return {
-      name: parseName(fragment, host, port),
-      host,
+      name,
+      host: stableJmsHost(name, host, port),
       port,
       ...credentials,
       udpRelay: true,
@@ -180,10 +194,11 @@ export function parseShadowsocksUri(uri: string): SurgeShadowsocksNode {
   if (at < 1) return invalid();
   const credentials = parseCredentials(decoded.slice(0, at), false);
   const { host, port } = parseHostPort(decoded.slice(at + 1));
+  const name = parseName(fragment, host, port);
 
   return {
-    name: parseName(fragment, host, port),
-    host,
+    name,
+    host: stableJmsHost(name, host, port),
     port,
     ...credentials,
     udpRelay: true,
