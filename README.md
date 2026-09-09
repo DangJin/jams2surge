@@ -52,7 +52,7 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 
 最小配置的默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。模板模式保留上游规则，并把生成的节点接入模板的“代理”策略组；OpenAI、Claude、谷歌服务、漏网之鱼等下游策略组会继续引用它。
 
-两种输出模式都会在 `[Rule]` 顶部加入公司产品直连规则。除 LinkModel 外，配置还覆盖 41 个阿里系根域名，包括阿里云、淘宝、天猫、1688、支付宝、钉钉、高德、饿了么、优酷、UC、AliExpress 等主要产品。Raycast 本地转换会直接内置这些规则；在线服务则将它们合并为一个本站托管的 `DOMAIN-SET`，避免规则列表过长。
+两种输出模式都会加入公司产品直连规则。除 LinkModel 外，配置还覆盖 41 个阿里系根域名，包括阿里云、淘宝、天猫、1688、支付宝、钉钉、高德、饿了么、优酷、UC、AliExpress 等主要产品。Raycast 本地转换会直接内置这些规则；在线服务则把它们放入配置内嵌的 `Jams2Surge-Alibaba` Ruleset，并在主规则列表中保留一条 `RULE-SET` 引用，避免规则列表过长，也避免 Surge 启动时再次下载远程规则文件。
 
 其中阿里云核心规则包括：
 
@@ -73,6 +73,8 @@ DOMAIN-SUFFIX,alibabacloud.com,DIRECT,extended-matching
 - `source`：必填，使用 Base64URL 编码的 HTTPS 上游订阅地址；旧版 `url` 参数仍兼容；
 - `mode`：可选，`template`（默认）或 `minimal`；
 - `autoSelect`：可选，`1`（默认）或 `0`，仅模板模式生效。
+
+返回结果使用 `interval=3600 strict=false` 的 Surge 托管配置头：Surge 最短每小时检查一次更新；网络暂时不可用时继续使用上一次成功配置，待网络恢复后再更新。
 
 可用下面的命令安全生成带嵌套查询参数的示例地址：
 

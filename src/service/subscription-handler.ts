@@ -22,6 +22,12 @@ const ALIBABA_DIRECT_RULES = new Set(
     (domain) => `DOMAIN-SUFFIX,${domain},DIRECT,extended-matching`,
   ),
 );
+const ALIBABA_RULESET_NAME = "Jams2Surge-Alibaba";
+const ALIBABA_RULESET_SECTION = [
+  `[Ruleset ${ALIBABA_RULESET_NAME}]`,
+  ...ALIBABA_DIRECT_DOMAINS.map((domain) => `DOMAIN-SUFFIX,${domain}`),
+  "",
+];
 
 export interface SubscriptionHandlerDependencies {
   downloadText: (url: string) => Promise<string>;
@@ -63,20 +69,21 @@ function textResponse(
   });
 }
 
-function compactAlibabaRules(profile: string, requestUrl: string): string {
-  const domainSetUrl = new URL("/alibaba-domains.list", requestUrl).toString();
-  const domainSetRule = `DOMAIN-SET,${domainSetUrl},DIRECT,extended-matching`;
+function embedAlibabaRules(profile: string): string {
+  const rulesetRule = `RULE-SET,${ALIBABA_RULESET_NAME},DIRECT,extended-matching`;
   let inserted = false;
 
-  return profile
-    .split("\n")
-    .flatMap((line) => {
-      if (!ALIBABA_DIRECT_RULES.has(line)) return [line];
-      if (inserted) return [];
-      inserted = true;
-      return [domainSetRule];
-    })
-    .join("\n");
+  const lines = profile.split("\n").flatMap((line) => {
+    if (!ALIBABA_DIRECT_RULES.has(line)) return [line];
+    if (inserted) return [];
+    inserted = true;
+    return [rulesetRule];
+  });
+  const ruleSectionIndex = lines.findIndex(
+    (line) => line.trim().toLowerCase() === "[rule]",
+  );
+  lines.splice(ruleSectionIndex, 0, ...ALIBABA_RULESET_SECTION);
+  return lines.join("\n");
 }
 
 export function createSubscriptionHandler(
@@ -118,7 +125,7 @@ export function createSubscriptionHandler(
               autoSelect: options.autoSelect,
             })
           : generateSurgeProfile(result.nodes);
-      const profile = compactAlibabaRules(generatedProfile, request.url);
+      const profile = embedAlibabaRules(generatedProfile);
       const managedUrl = new URL(request.url);
       managedUrl.search = "";
       managedUrl.searchParams.set(
@@ -128,7 +135,7 @@ export function createSubscriptionHandler(
       managedUrl.searchParams.set("mode", options.mode);
       managedUrl.searchParams.set("autoSelect", options.autoSelect ? "1" : "0");
       const managedProfile =
-        `#!MANAGED-CONFIG ${managedUrl.toString()} interval=86400 strict=true\n` +
+        `#!MANAGED-CONFIG ${managedUrl.toString()} interval=3600 strict=false\n` +
         profile;
       if (
         new TextEncoder().encode(managedProfile).byteLength > MAX_RESPONSE_BYTES

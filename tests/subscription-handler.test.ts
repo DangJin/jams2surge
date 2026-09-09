@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SafeDownloadError } from "../src/service/safe-download";
 import { createSubscriptionHandler } from "../src/service/subscription-handler";
+import { EXPECTED_ALIBABA_DIRECT_DOMAINS } from "./fixtures/company-direct-domains";
 
 function sip002(name: string, password = "secret"): string {
   const credentials = Buffer.from(`aes-256-gcm:${password}`, "utf8").toString(
@@ -62,17 +63,19 @@ describe("createSubscriptionHandler", () => {
     const response = await handler(new Request(url));
 
     expect(await response.text()).toMatch(
-      /^#!MANAGED-CONFIG https:\/\/service\.test\/api\/subscription\?source=aHR0cHM6Ly91cHN0cmVhbS50ZXN0L3N1Yg&mode=minimal&autoSelect=0 interval=86400 strict=true\n\[General]/,
+      /^#!MANAGED-CONFIG https:\/\/service\.test\/api\/subscription\?source=aHR0cHM6Ly91cHN0cmVhbS50ZXN0L3N1Yg&mode=minimal&autoSelect=0 interval=3600 strict=false\n\[General]/,
     );
   });
 
   it.each(["minimal", "template"] as const)(
-    "collapses Alibaba rules into one hosted domain set in %s mode",
+    "embeds Alibaba rules without a startup network dependency in %s mode",
     async (mode) => {
       const handler = createSubscriptionHandler({
         templateUrl: "https://template.test/Surge-Mac.conf",
         downloadText: async (url) =>
-          url.includes("template.test") ? templateFixture : subscriptionWithTokyo,
+          url.includes("template.test")
+            ? templateFixture
+            : subscriptionWithTokyo,
       });
 
       const response = await handler(
@@ -86,10 +89,13 @@ describe("createSubscriptionHandler", () => {
         "DOMAIN-SUFFIX,linkmodel.ai,DIRECT,extended-matching",
       );
       expect(profile).toContain(
-        "DOMAIN-SET,https://service.test/alibaba-domains.list,DIRECT,extended-matching",
+        `[Ruleset Jams2Surge-Alibaba]\n${EXPECTED_ALIBABA_DIRECT_DOMAINS.map((domain) => `DOMAIN-SUFFIX,${domain}`).join("\n")}\n\n[Rule]`,
+      );
+      expect(profile).toContain(
+        "RULE-SET,Jams2Surge-Alibaba,DIRECT,extended-matching",
       );
       expect(profile).not.toContain("DOMAIN-SUFFIX,aliyun.com,DIRECT");
-      expect(profile.match(/alibaba-domains\.list/g)).toHaveLength(1);
+      expect(profile).not.toContain("alibaba-domains.list");
     },
   );
 
