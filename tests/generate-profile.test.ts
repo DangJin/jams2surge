@@ -64,7 +64,7 @@ FINAL,Proxy
     expect(ruleLines).toEqual(EXPECTED_COMPANY_DIRECT_RULES);
   });
 
-  it("adds a plain DNS bootstrap mapping for JMS proxy hostnames", () => {
+  it("adds an exact plain DNS bootstrap mapping for a JMS proxy hostname", () => {
     const node: SurgeShadowsocksNode = {
       name: "JMS-1448581@c81s1.portablesubmarines.com:29781",
       host: "c81s1.portablesubmarines.com",
@@ -75,7 +75,10 @@ FINAL,Proxy
     };
 
     expect(generateSurgeProfile([node])).toContain(
-      "[Host]\n*.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
+      "[Host]\nc81s1.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
+    );
+    expect(generateSurgeProfile([node])).not.toContain(
+      "*.portablesubmarines.com =",
     );
   });
 

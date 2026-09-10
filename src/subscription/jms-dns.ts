@@ -2,14 +2,20 @@ import type { SurgeShadowsocksNode } from "./types";
 
 const JMS_PROXY_DOMAIN = "portablesubmarines.com";
 
-export const JMS_DNS_BOOTSTRAP_MAPPING =
-  "*.portablesubmarines.com = server:223.5.5.5";
+const JMS_DNS_SERVER = "223.5.5.5";
 
-function usesJmsProxyHostname(nodes: SurgeShadowsocksNode[]): boolean {
-  return nodes.some((node) => {
-    const host = node.host.toLowerCase().replace(/\.$/, "");
-    return host === JMS_PROXY_DOMAIN || host.endsWith(`.${JMS_PROXY_DOMAIN}`);
-  });
+function collectJmsProxyHostnames(nodes: SurgeShadowsocksNode[]): string[] {
+  return [
+    ...new Set(
+      nodes.flatMap((node) => {
+        const host = node.host.toLowerCase().replace(/\.$/, "");
+        return host === JMS_PROXY_DOMAIN ||
+          host.endsWith(`.${JMS_PROXY_DOMAIN}`)
+          ? [host]
+          : [];
+      }),
+    ),
+  ];
 }
 
 function findSection(lines: string[], name: string): number {
@@ -29,13 +35,16 @@ export function ensureJmsDnsBootstrap(
   lines: string[],
   nodes: SurgeShadowsocksNode[],
 ): void {
-  if (!usesJmsProxyHostname(nodes)) return;
+  const mappings = collectJmsProxyHostnames(nodes).map(
+    (host) => `${host} = server:${JMS_DNS_SERVER}`,
+  );
+  if (mappings.length === 0) return;
 
   const hostStart = findSection(lines, "Host");
   if (hostStart < 0) {
     const ruleStart = findSection(lines, "Rule");
     const insertAt = ruleStart < 0 ? lines.length : ruleStart;
-    const section = ["[Host]", JMS_DNS_BOOTSTRAP_MAPPING, ""];
+    const section = ["[Host]", ...mappings, ""];
     if (insertAt > 0 && lines[insertAt - 1].trim() !== "") {
       section.unshift("");
     }
@@ -44,15 +53,17 @@ export function ensureJmsDnsBootstrap(
   }
 
   const hostEnd = findSectionEnd(lines, hostStart);
-  const mappingPattern = /^\s*\*\.portablesubmarines\.com\s*=/i;
+  const mappingPattern =
+    /^\s*(?:\*\.)?(?:[a-z0-9-]+\.)*portablesubmarines\.com\s*=/i;
   const matches: number[] = [];
   for (let index = hostStart + 1; index < hostEnd; index += 1) {
     if (mappingPattern.test(lines[index])) matches.push(index);
   }
 
   if (matches.length > 0) {
-    lines[matches[0]] = JMS_DNS_BOOTSTRAP_MAPPING;
-    for (const index of matches.slice(1).reverse()) lines.splice(index, 1);
+    const insertAt = matches[0];
+    for (const index of matches.reverse()) lines.splice(index, 1);
+    lines.splice(insertAt, 0, ...mappings);
     return;
   }
 
@@ -60,5 +71,5 @@ export function ensureJmsDnsBootstrap(
   while (insertAt > hostStart + 1 && lines[insertAt - 1].trim() === "") {
     insertAt -= 1;
   }
-  lines.splice(insertAt, 0, JMS_DNS_BOOTSTRAP_MAPPING);
+  lines.splice(insertAt, 0, ...mappings);
 }

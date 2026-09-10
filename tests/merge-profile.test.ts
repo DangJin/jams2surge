@@ -46,6 +46,14 @@ const jmsNodes: SurgeShadowsocksNode[] = [
     password: "secret",
     udpRelay: true,
   },
+  {
+    name: "JMS-1448581@c81s2.portablesubmarines.com:29781",
+    host: "c81s2.portablesubmarines.com",
+    port: 29781,
+    method: "aes-128-gcm",
+    password: "secret",
+    udpRelay: true,
+  },
 ];
 
 describe("mergeSurgeTemplate", () => {
@@ -74,13 +82,13 @@ FINAL,代理
     expect(profile).toContain("代理 = select, Tokyo, Osaka, DIRECT");
   });
 
-  it("adds a DNS bootstrap Host section when a JMS node is merged", () => {
+  it("adds exact DNS bootstrap records for every JMS proxy hostname", () => {
     const profile = mergeSurgeTemplate(template, jmsNodes, {
       autoSelect: false,
     });
 
     expect(profile).toContain(
-      "[Host]\n*.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
+      "[Host]\nc81s1.portablesubmarines.com = server:223.5.5.5\nc81s2.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
     );
   });
 
@@ -90,7 +98,7 @@ FINAL,代理
       `[Host]
 intranet.example.com = 192.0.2.1
 *.portablesubmarines.com = server:119.29.29.29
- *.PORTABLESUBMARINES.COM=server:8.8.8.8
+c81s3.portablesubmarines.com = server:8.8.8.8
 [Rule]`,
     );
 
@@ -99,12 +107,14 @@ intranet.example.com = 192.0.2.1
     });
 
     expect(profile).toContain("intranet.example.com = 192.0.2.1");
-    expect(
-      profile.match(/^\*\.portablesubmarines\.com = server:223\.5\.5\.5$/gm),
-    ).toHaveLength(1);
-    expect(
-      profile.match(/^\s*\*\.portablesubmarines\.com\s*=/gim),
-    ).toHaveLength(1);
+    expect(profile).toContain(
+      "c81s1.portablesubmarines.com = server:223.5.5.5",
+    );
+    expect(profile).toContain(
+      "c81s2.portablesubmarines.com = server:223.5.5.5",
+    );
+    expect(profile).not.toContain("*.portablesubmarines.com");
+    expect(profile).not.toContain("c81s3.portablesubmarines.com");
   });
 
   it("renames nodes that collide with existing proxies or policy groups", () => {
