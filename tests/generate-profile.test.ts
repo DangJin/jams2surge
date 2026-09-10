@@ -64,6 +64,36 @@ FINAL,Proxy
     expect(ruleLines).toEqual(EXPECTED_COMPANY_DIRECT_RULES);
   });
 
+  it("adds a plain DNS bootstrap mapping for JMS proxy hostnames", () => {
+    const node: SurgeShadowsocksNode = {
+      name: "JMS-1448581@c81s1.portablesubmarines.com:29781",
+      host: "c81s1.portablesubmarines.com",
+      port: 29781,
+      method: "aes-128-gcm",
+      password: "secret",
+      udpRelay: true,
+    };
+
+    expect(generateSurgeProfile([node])).toContain(
+      "[Host]\n*.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
+    );
+  });
+
+  it("does not add the JMS DNS mapping for unrelated proxy hosts", () => {
+    const node: SurgeShadowsocksNode = {
+      name: "Tokyo",
+      host: "example.com",
+      port: 443,
+      method: "aes-128-gcm",
+      password: "secret",
+      udpRelay: true,
+    };
+
+    expect(generateSurgeProfile([node])).not.toContain(
+      "*.portablesubmarines.com = server:223.5.5.5",
+    );
+  });
+
   it("removes line breaks and quotes values that could inject configuration", () => {
     const node: SurgeShadowsocksNode = {
       name: "Safe Node",

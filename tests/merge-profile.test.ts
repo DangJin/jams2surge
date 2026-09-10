@@ -37,6 +37,17 @@ const nodes: SurgeShadowsocksNode[] = [
   },
 ];
 
+const jmsNodes: SurgeShadowsocksNode[] = [
+  {
+    name: "JMS-1448581@c81s1.portablesubmarines.com:29781",
+    host: "c81s1.portablesubmarines.com",
+    port: 29781,
+    method: "aes-128-gcm",
+    password: "secret",
+    udpRelay: true,
+  },
+];
+
 describe("mergeSurgeTemplate", () => {
   it("injects proxies and wires them through an automatic selection group", () => {
     expect(mergeSurgeTemplate(template, nodes, { autoSelect: true }))
@@ -61,6 +72,39 @@ FINAL,代理
 
     expect(profile).not.toContain("自动选择 = url-test");
     expect(profile).toContain("代理 = select, Tokyo, Osaka, DIRECT");
+  });
+
+  it("adds a DNS bootstrap Host section when a JMS node is merged", () => {
+    const profile = mergeSurgeTemplate(template, jmsNodes, {
+      autoSelect: false,
+    });
+
+    expect(profile).toContain(
+      "[Host]\n*.portablesubmarines.com = server:223.5.5.5\n\n[Rule]",
+    );
+  });
+
+  it("normalizes and deduplicates an existing JMS DNS mapping", () => {
+    const templateWithHost = template.replace(
+      "[Rule]",
+      `[Host]
+intranet.example.com = 192.0.2.1
+*.portablesubmarines.com = server:119.29.29.29
+ *.PORTABLESUBMARINES.COM=server:8.8.8.8
+[Rule]`,
+    );
+
+    const profile = mergeSurgeTemplate(templateWithHost, jmsNodes, {
+      autoSelect: false,
+    });
+
+    expect(profile).toContain("intranet.example.com = 192.0.2.1");
+    expect(
+      profile.match(/^\*\.portablesubmarines\.com = server:223\.5\.5\.5$/gm),
+    ).toHaveLength(1);
+    expect(
+      profile.match(/^\s*\*\.portablesubmarines\.com\s*=/gim),
+    ).toHaveLength(1);
   });
 
   it("renames nodes that collide with existing proxies or policy groups", () => {

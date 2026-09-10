@@ -1,5 +1,6 @@
 import type { SurgeShadowsocksNode } from "./types";
 import { COMPANY_DIRECT_RULES } from "./company-rules";
+import { ensureJmsDnsBootstrap } from "./jms-dns";
 
 export class ProfileGenerationError extends Error {
   constructor(message: string) {
@@ -33,7 +34,7 @@ export function generateSurgeProfile(nodes: SurgeShadowsocksNode[]): string {
     throw new ProfileGenerationError("没有可转换的 Shadowsocks 节点");
   }
 
-  return [
+  const lines = [
     "[General]",
     "loglevel = notify",
     "",
@@ -47,5 +48,7 @@ export function generateSurgeProfile(nodes: SurgeShadowsocksNode[]): string {
     ...COMPANY_DIRECT_RULES,
     "FINAL,Proxy",
     "",
-  ].join("\n");
+  ];
+  ensureJmsDnsBootstrap(lines, nodes);
+  return lines.join("\n");
 }

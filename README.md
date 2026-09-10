@@ -15,7 +15,7 @@ Jams2Surge 可作为本机 Raycast 扩展使用，也可选择部署为 Vercel �
 
 Surge 当前不原生支持 VLESS。扩展不会把 VLESS 伪装成 VMess 或生成无法工作的代理行，因此 VLESS 节点只会出现在“未转换项目”中。
 
-对于服务器地址会轮换、但节点名称包含稳定 `*.portablesubmarines.com` 主机名的 JMS Shadowsocks 节点，转换结果会使用该主机名连接。供应商切换 IP 后由 DNS 自动跟随，不依赖 Surge 恰好先完成托管配置更新。
+对于服务器地址会轮换、但节点名称包含稳定 `*.portablesubmarines.com` 主机名的 JMS Shadowsocks 节点，转换结果会使用该主机名连接。供应商切换 IP 后由 DNS 自动跟随，不依赖 Surge 恰好先完成托管配置更新。配置还会自动加入 `*.portablesubmarines.com = server:223.5.5.5` 的 `[Host]` DNS 引导映射，避免解析代理主机名时再次进入加密 DNS 代理而形成循环。
 
 ## 环境要求
 
@@ -50,6 +50,7 @@ Raycast 打开开发扩展后，搜索并运行 `Convert Subscription to Surge`�
 - `[General]`
 - `[Proxy]`
 - `[Proxy Group]`
+- `[Host]`（使用 JMS 域名节点时）
 - `[Rule]`
 
 最小配置的默认策略组名为 `Proxy`，默认规则为 `FINAL,Proxy`。模板模式保留上游规则，并把生成的节点接入模板的“代理”策略组；OpenAI、Claude、谷歌服务、漏网之鱼等下游策略组会继续引用它。

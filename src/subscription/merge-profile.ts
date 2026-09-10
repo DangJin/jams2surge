@@ -1,5 +1,6 @@
 import { ensureCompanyDirectRules } from "./company-rules";
 import { generateSurgeProxyLine } from "./generate-profile";
+import { ensureJmsDnsBootstrap } from "./jms-dns";
 import type { SurgeShadowsocksNode } from "./types";
 
 export class TemplateMergeError extends Error {
@@ -103,6 +104,8 @@ export function mergeSurgeTemplate(
   } else {
     lines[primaryGroupLine] = `代理 = select, ${nodeNames.join(", ")}, DIRECT`;
   }
+
+  ensureJmsDnsBootstrap(lines, mergedNodes);
 
   const ruleStart = findSection(lines, "Rule");
   if (ruleStart < 0) throw new TemplateMergeError("模板中缺少 [Rule] section");
